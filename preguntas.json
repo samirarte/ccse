@@ -1,0 +1,81 @@
+
+[
+  {
+    "task_number": 1,
+    "topic": "Gobierno, legislación y participación ciudadana",
+    "question_text": "¿Quién es el Jefe del Estado en España?",
+    "question_type": "multiple_choice",
+    "option_a": "El Presidente del Gobierno",
+    "option_b": "El Rey",
+    "option_c": "El Ministro de Interior",
+    "correct_answer": "b",
+    "explanation_simple": "En España, el Rey es el Jefe del Estado, pero no gobierna. El Presidente del Gobierno es quien dirige el país.",
+    "difficulty": "baja",
+    "active": true
+  },
+  {
+    "task_number": 1,
+    "topic": "Gobierno, legislación y participación ciudadana",
+    "question_text": "La Constitución española garantiza la libertad de religión.",
+    "question_type": "true_false",
+    "option_a": "Verdadero",
+    "option_b": "Falso",
+    "option_c": null,
+    "correct_answer": "true",
+    "explanation_simple": "La Constitución protege el derecho de todas las personas a tener sus propias creencias religiosas o a no tener ninguna.",
+    "difficulty": "baja",
+    "active": true
+  },
+  {
+    "task_number": 2,
+    "topic": "Derechos y deberes fundamentales",
+    "question_text": "¿A qué edad es obligatorio en España tener el DNI (Documento Nacional de Identidad)?",
+    "question_type": "multiple_choice",
+    "option_a": "A los 14 años",
+    "option_b": "A los 16 años",
+    "option_c": "A los 18 años",
+    "correct_answer": "a",
+    "explanation_simple": "A partir de los 14 años, es obligatorio tener el DNI en España. Es el documento que te identifica.",
+    "difficulty": "media",
+    "active": true
+  },
+  {
+    "task_number": 3,
+    "topic": "Organización territorial de España",
+    "question_text": "¿Cuál de estas ciudades es la capital de la comunidad autónoma de Andalucía?",
+    "question_type": "multiple_choice",
+    "option_a": "Málaga",
+    "option_b": "Granada",
+    "option_c": "Sevilla",
+    "correct_answer": "c",
+    "explanation_simple": "Sevilla es la capital de Andalucía. Málaga y Granada son otras ciudades importantes de la misma comunidad.",
+    "difficulty": "media",
+    "active": true
+  },
+  {
+    "task_number": 4,
+    "topic": "Cultura e historia de España",
+    "question_text": "El famoso pintor del cuadro 'Las Meninas' es...",
+    "question_type": "multiple_choice",
+    "option_a": "Francisco de Goya",
+    "option_b": "Diego Velázquez",
+    "option_c": "Pablo Picasso",
+    "correct_answer": "b",
+    "explanation_simple": "Diego Velázquez fue un pintor muy importante del siglo XVII y 'Las Meninas' es su obra más famosa. Se puede ver en el Museo del Prado en Madrid.",
+    "difficulty": "media",
+    "active": true
+  },
+  {
+    "task_number": 5,
+    "topic": "Sociedad española",
+    "question_text": "En España, el número de teléfono para emergencias (policía, bomberos, ambulancia) es el 112.",
+    "question_type": "true_false",
+    "option_a": "Verdadero",
+    "option_b": "Falso",
+    "option_c": null,
+    "correct_answer": "true",
+    "explanation_simple": "El 112 es el número único de emergencias en toda la Unión Europea, y por tanto, también en España. Es gratuito y siempre funciona.",
+    "difficulty": "baja",
+    "active": true
+  }
+]
