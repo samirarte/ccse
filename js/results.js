@@ -87,4 +87,4 @@ document.addEventListener('DOMContentLoaded', async function() {
     document.getElementById('res-no-respondidas').textContent = noRespondidas;
     document.getElementById('res-bien').textContent = bien;
     document.getElementById('res-mal').textContent = mal;
-});
+}); 
