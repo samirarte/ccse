@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultados del Simulacro - CCSE</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Resultados del Examen</h1>
+        </header>
+        <main>
+            <div id="summary-container">
+                <h2>Resumen de Resultados</h2>
+                <p><strong>Puntuación Final:</strong> <span id="score">--</span> / 25</p>
+                <p><strong>Aciertos:</strong> <span id="correct-count">--</span></p>
+                <p><strong>Fallos:</strong> <span id="incorrect-count">--</span></p>
+                <p><strong>No respondidas:</strong> <span id="unanswered-count">--</span></p>
+            </div>
+            <div id="details-container">
+                <h2>Detalle de Preguntas</h2>
+                <div id="questions-list"></div>
+            </div>
+            <div class="navigation-buttons">
+                <a href="exam.html" class="btn">Repetir Examen</a>
+                <a href="index.html" class="btn">Volver al Inicio</a>
+            </div>
+        </main>
+    </div>
+    <script src="js/results.js"></script>
+</body>
+</html>

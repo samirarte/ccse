@@ -1,10 +1,10 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // Firebase auth check remains important for user session
     const auth = firebase.auth();
-    const db = firebase.firestore();
     let currentUser = null;
-    let currentExamId = null;
-    let examQuestions = [];
-    let userAnswers = {};
+
+    let examQuestions = []; // Array of questions for the current exam
+    let userAnswers = {};   // Object to store user's answers { questionIndex: answer }
     let timerInterval = null;
 
     const ui = {
@@ -16,57 +16,59 @@ document.addEventListener('DOMContentLoaded', function() {
     auth.onAuthStateChanged(user => {
         if (user) {
             currentUser = user;
-            startNewExam();
+            startNewExam(); // Start exam when user is logged in
         } else {
+            // If no user, redirect to login
             window.location.href = 'login.html';
         }
     });
 
+    /**
+     * Fetches questions from the local JSON file, shuffles them, and starts the exam.
+     */
     async function startNewExam() {
-        examQuestions = await generateExamQuestions();
-        renderExam(examQuestions);
-        startTimer(45 * 60);
-
-        const examRef = db.collection('exams').doc();
-        currentExamId = examRef.id;
-        await examRef.set({
-            id: currentExamId,
-            user_id: currentUser.uid,
-            started_at: firebase.firestore.FieldValue.serverTimestamp(),
-            total_questions: examQuestions.length,
-            exam_mode: 'simulacro_oficial'
-        });
+        try {
+            const response = await fetch('preguntas.json');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const allQuestions = await response.json();
+            
+            // Select 25 random questions for the exam
+            examQuestions = shuffleArray(allQuestions).slice(0, 25);
+            userAnswers = {}; // Reset answers for the new exam
+            
+            renderExam(examQuestions);
+            startTimer(45 * 60); // 45 minutes for the exam
+        } catch (error) {
+            console.error("Could not start new exam:", error);
+            ui.examContainer.innerHTML = "<p>Error al cargar las preguntas del examen. Por favor, intentalo de nuevo más tarde.</p>";
+        }
     }
 
-    async function generateExamQuestions() {
-        const questionsRef = db.collection('questions').where('active', '==', true);
-        const snapshot = await questionsRef.get();
-        const allQuestions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        // Lógica de selección de 25 preguntas (simplificada por ahora, se puede mejorar)
-        // Idealmente, aquí se implementaría la lógica de tareas del CCSE.
-        return shuffleArray(allQuestions).slice(0, 25);
-    }
-
+    /**
+     * Renders the exam questions and options on the page.
+     */
     function renderExam(questions) {
         let examHtml = '';
         questions.forEach((q, index) => {
+            const questionId = index; // Use the array index as a unique identifier for this exam session
             examHtml += `
-                <div class="question-block" id="question-${q.id}">
+                <div class="question-block" id="question-${questionId}">
                     <h3>Pregunta ${index + 1}</h3>
                     <p>${q.question_text}</p>
-                    <div class="options" data-question-id="${q.id}">
+                    <div class="options" data-question-id="${questionId}">
             `;
             if (q.question_type === 'multiple_choice') {
                 examHtml += `
-                    <label class="option"><input type="radio" name="q${q.id}" value="a"> A) ${q.option_a}</label>
-                    <label class="option"><input type="radio" name="q${q.id}" value="b"> B) ${q.option_b}</label>
-                    <label class="option"><input type="radio" name="q${q.id}" value="c"> C) ${q.option_c}</label>
+                    <label class="option"><input type="radio" name="q${questionId}" value="a"> A) ${q.option_a}</label>
+                    <label class="option"><input type="radio" name="q${questionId}" value="b"> B) ${q.option_b}</label>
+                    <label class="option"><input type="radio" name="q${questionId}" value="c"> C) ${q.option_c}</label>
                 `;
             } else if (q.question_type === 'true_false') {
                 examHtml += `
-                    <label class="option"><input type="radio" name="q${q.id}" value="true"> Verdadero</label>
-                    <label class="option"><input type="radio" name="q${q.id}" value="false"> Falso</label>
+                    <label class="option"><input type="radio" name="q${questionId}" value="true"> Verdadero</label>
+                    <label class="option"><input type="radio" name="q${questionId}" value="false"> Falso</label>
                 `;
             }
             examHtml += `</div></div>`;
@@ -75,14 +77,17 @@ document.addEventListener('DOMContentLoaded', function() {
         addOptionListeners();
     }
 
+    /**
+     * Adds event listeners to all answer options.
+     */
     function addOptionListeners() {
         const options = document.querySelectorAll('.option input');
         options.forEach(option => {
             option.addEventListener('change', (e) => {
-                const questionId = e.target.name.substring(1);
+                const questionId = e.target.name.substring(1); // Extracts index from "q[index]"
                 userAnswers[questionId] = e.target.value;
 
-                // Visual feedback
+                // Visual feedback for selected option
                 document.querySelectorAll(`input[name="q${questionId}"]`).forEach(opt => {
                     opt.parentElement.classList.remove('selected');
                 });
@@ -91,73 +96,36 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    /**
+     * Handles the exam submission button click.
+     */
     ui.submitExamBtn.addEventListener('click', () => {
-        if (confirm('¿Estás seguro de que quieres finalizar el examen?')) {
-            clearInterval(timerInterval);
-            correctExam();
+        if (confirm('¿Estás seguro de que quieres finalizar y corregir el examen?')) {
+            clearInterval(timerInterval); // Stop the timer
+            finishExam();
         }
     });
 
-    async function correctExam() {
-        let scoreCorrect = 0;
-        let scoreIncorrect = 0;
-        const batch = db.batch();
-
-        for (const question of examQuestions) {
-            const userAnswer = userAnswers[question.id];
-            const isCorrect = userAnswer === question.correct_answer;
-
-            if (isCorrect) {
-                scoreCorrect++;
-            } else {
-                scoreIncorrect++;
-            }
-
-            // Guardar respuesta del examen
-            const answerRef = db.collection('exam_answers').doc();
-            batch.set(answerRef, {
-                exam_id: currentExamId,
-                user_id: currentUser.uid,
-                question_id: question.id,
-                selected_answer: userAnswer || null,
-                correct_answer: question.correct_answer,
-                is_correct: isCorrect,
-                answered_at: firebase.firestore.FieldValue.serverTimestamp()
-            });
-
-            // Actualizar estadísticas de la pregunta
-            const questionStatsRef = db.collection('questions').doc(question.id);
-            batch.update(questionStatsRef, {
-                times_answered: firebase.firestore.FieldValue.increment(1),
-                times_correct: firebase.firestore.FieldValue.increment(isCorrect ? 1 : 0),
-                times_incorrect: firebase.firestore.FieldValue.increment(isCorrect ? 0 : 1)
-            });
-        }
-
-        // Actualizar el examen
-        const passed = scoreCorrect >= 15;
-        const examRef = db.collection('exams').doc(currentExamId);
-        batch.update(examRef, {
-            finished_at: firebase.firestore.FieldValue.serverTimestamp(),
-            score_correct: scoreCorrect,
-            score_incorrect: scoreIncorrect,
-            passed: passed
-        });
-
-        await batch.commit();
-
-        // Guardar resultados en localStorage para mostrarlos en la página de resultados
-        localStorage.setItem('lastExamResults', JSON.stringify({ 
-            examId: currentExamId,
+    /**
+     * Calculates the score, saves results to sessionStorage, and redirects to the results page.
+     */
+    function finishExam() {
+        // Save the full questions and user answers to sessionStorage
+        sessionStorage.setItem('examResults', JSON.stringify({
             questions: examQuestions,
-            answers: userAnswers
+            userAnswers: userAnswers
         }));
 
-        window.location.href = 'resultados.html';
+        // Redirect to the new results page
+        window.location.href = 'results.html';
     }
     
+    /**
+     * Starts the exam timer.
+     */
     function startTimer(duration) {
         let timer = duration, minutes, seconds;
+        clearInterval(timerInterval); // Clear any existing timer
         timerInterval = setInterval(function () {
             minutes = parseInt(timer / 60, 10);
             seconds = parseInt(timer % 60, 10);
@@ -170,11 +138,14 @@ document.addEventListener('DOMContentLoaded', function() {
             if (--timer < 0) {
                 clearInterval(timerInterval);
                 alert('¡Tiempo agotado! El examen se corregirá automáticamente.');
-                correctExam();
+                finishExam();
             }
         }, 1000);
     }
 
+    /**
+     * Shuffles an array randomly.
+     */
     function shuffleArray(array) {
         for (let i = array.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
