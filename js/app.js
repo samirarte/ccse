@@ -4,21 +4,37 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const ui = {
         startExamBtn: document.getElementById('start-exam-btn'),
-        examList: document.getElementById('exam-list')
+        examList: document.getElementById('exam-list'),
+        dbStatus: document.getElementById('db-status') // Elemento para el estado de la BD
     };
+
+    // 1. Comprobar la conectividad con Firestore
+    db.collection('_ping').get().then(() => {
+        console.log("Firestore connection is OK.");
+        if (ui.dbStatus) {
+            ui.dbStatus.textContent = '(en línea)';
+            ui.dbStatus.style.color = 'green';
+        }
+    }).catch(error => {
+        console.error("Firestore connection failed:", error.message);
+        if (ui.dbStatus) {
+            ui.dbStatus.textContent = '_sin conexión_';
+            ui.dbStatus.style.color = 'red';
+        }
+    });
 
     auth.onAuthStateChanged(user => {
         if (user) {
+            // 2. Cargar el historial con manejo de errores
             loadExamHistory(user.uid);
 
             if (ui.startExamBtn) {
                 ui.startExamBtn.addEventListener('click', () => {
-                    // Redirigir a la página de examen
                     window.location.href = 'examen.html';
                 });
             }
         } else {
-            // El usuario no está logueado
+            // Si no hay usuario, no se necesita hacer nada aquí
         }
     });
 
@@ -34,17 +50,21 @@ document.addEventListener('DOMContentLoaded', function() {
             let historyHtml = '';
             snapshot.forEach(doc => {
                 const exam = doc.data();
-                const date = exam.finished_at.toDate().toLocaleString('es-ES');
+                const date = exam.finished_at ? exam.finished_at.toDate().toLocaleString('es-ES') : 'Fecha no disponible';
                 const resultClass = exam.passed ? 'passed' : 'failed';
                 historyHtml += `
                     <li class="${resultClass}">
                         <strong>Examen del ${date}</strong> - 
                         Resultado: ${exam.score_correct} de ${exam.total_questions}. 
-                        <strong>${exam.passed ? 'APROBADO' : 'NO APROBADO'}</strong>
+                        <strong>${exam.passed ? 'APROBADO' : 'NO APROBado'}</strong>
                     </li>
                 `;
             });
             ui.examList.innerHTML = historyHtml;
+
+        }).catch(error => {
+            console.error("Error loading exam history:", error);
+            ui.examList.innerHTML = '<li class="error-message">No se pudo cargar el historial. Parece que hay un problema de conexión.</li>';
         });
     }
 });

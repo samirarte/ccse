@@ -17,10 +17,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(result => {
                     const user = result.user;
                     console.log('Usuario ha iniciado sesión:', user.displayName);
-                    window.location.href = 'dashboard.html';
+                    // La redirección se gestionará con el observador
                 })
                 .catch(error => {
                     console.error('Error durante el inicio de sesión con Google:', error);
+                    alert('No se pudo iniciar sesión. Revisa tu conexión o inténtalo más tarde.');
                 });
         });
     }
@@ -30,6 +31,8 @@ document.addEventListener('DOMContentLoaded', function() {
             auth.signOut().then(() => {
                 console.log('Usuario ha cerrado sesión.');
                 window.location.href = 'index.html';
+            }).catch(error => {
+                console.error('Error durante el cierre de sesión:', error);
             });
         });
     }
@@ -37,40 +40,49 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- OBSERVADOR DE ESTADO DE AUTENTICACIÓN ---
     auth.onAuthStateChanged(user => {
         if (user) {
-            // Si el usuario está en una página que no requiere autenticación, redirigir al dashboard
-            if (window.location.pathname.endsWith('login.html') || window.location.pathname.endsWith('index.html')) {
-                window.location.href = 'dashboard.html';
-            }
+            saveUserToFirestore(user);
             if (ui.userInfo) {
                 ui.userInfo.textContent = `Hola, ${user.displayName}`;
             }
-            saveUserToFirestore(user);
+            // Si el usuario ya está logueado, y está en login/index, redirigir a dashboard
+            if (window.location.pathname.endsWith('login.html') || window.location.pathname.endsWith('index.html')) {
+                window.location.href = 'dashboard.html';
+            }
         } else {
-            // Si el usuario no está logueado y no está en la página de login o index, redirigirlo
+            // Si no hay usuario, y no estamos en una página pública, redirigir a login
             if (!window.location.pathname.endsWith('login.html') && !window.location.pathname.endsWith('index.html')) {
                 window.location.href = 'login.html';
             }
         }
     });
 
-    // --- GUARDAR USUARIO EN FIRESTORE ---
+    // --- GUARDAR USUARIO EN FIRESTORE (CON MANEJO DE ERRORES) ---
     function saveUserToFirestore(user) {
         const usersRef = db.collection('users').doc(user.uid);
 
         usersRef.get().then(doc => {
             if (!doc.exists) {
+                // Crear nuevo registro de usuario
                 usersRef.set({
                     id: user.uid,
                     name: user.displayName,
                     email: user.email,
                     created_at: firebase.firestore.FieldValue.serverTimestamp(),
                     last_login: firebase.firestore.FieldValue.serverTimestamp()
+                }).catch(error => {
+                    console.error("Error al crear el registro de usuario en Firestore:", error);
                 });
             } else {
+                // Actualizar la fecha del último login
                 usersRef.update({
                     last_login: firebase.firestore.FieldValue.serverTimestamp()
+                }).catch(error => {
+                    console.error("Error al actualizar la fecha de último login:", error);
                 });
             }
+        }).catch(error => {
+            // Este error saltará si no hay conexión para hacer el get()
+            console.error("Error al obtener el documento del usuario desde Firestore:", error);
         });
     }
 });
